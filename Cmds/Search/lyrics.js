@@ -1,45 +1,45 @@
-const lyricsFinder = require('lyrics-finder');
-const yts = require('yt-search');
+const fetch = require('node-fetch');
 
 module.exports = async (context) => {
-  const { client, m, text } = context;
-  
+  const { client, m, text, fetchJson, sendReply, sendMediaMessage } = context;
+
+  const apiUrl = `https://api.dreaded.site/api/lyrics?title=${encodeURIComponent(text)}`;
+
   try {
-    
-    if (!text) return m.reply("Please provide a song name and artist.");
-      
-    const info = await yts(text);
-    const results = info.videos;
-  
-    if (!results || results.length === 0) {
-      return m.reply("No results found for the given song or artist.");
-    }
- 
-    const songDetails = text.split(' ').reverse(); 
-    const title = songDetails.slice(0, songDetails.length - 1).join(' '); 
-    const artist = songDetails[songDetails.length - 1]; 
-        
-    const lyrics = await lyricsFinder(artist, title);
+    if (!text) return sendReply(client, m, "Provide a song name!");
 
-    if (!lyrics) {
-      return m.reply(`Sorry, I couldn't find any lyrics for "${text}". Please try another song.`);
+    const data = await fetchJson(apiUrl);
+
+    if (!data.success || !data.result || !data.result.lyrics) {
+      return sendReply(client, m, `Sorry, I couldn't find any lyrics for "${text}".`);
     }
 
-    const formattedMessage = `
-*KEITH-MD LYRICS FINDER*
-*Title:* ${title}
-*Artist:* ${artist}
+    const { title, artist, link, thumb, lyrics } = data.result;
 
-${lyrics}
-    `;
+    const imageUrl = thumb || "https://i.imgur.com/Cgte666.jpeg";
 
-    await client.sendMessage(m.chat, { 
-      image: { url: results[0].thumbnail }, 
-      caption: formattedMessage 
-    }, { quoted: m });
+    const imageBuffer = await fetch(imageUrl)
+      .then(res => res.buffer())
+      .catch(err => {
+        console.error('Error fetching image:', err);
+        return null;
+      });
 
+    if (!imageBuffer) {
+      return sendReply(client, m, "An error occurred while fetching the image.");
+    }
+
+    const caption = `*Title*: ${title}\n*Artist*: ${artist}\n\n${lyrics}`;
+
+    await sendMediaMessage(client, m, 
+      {
+        image: imageBuffer,
+        caption: caption
+      },
+      { quoted: m }
+    );
   } catch (error) {
-    m.reply(`Error: I was unable to fetch the lyrics. Please try again later.\n\n${error.message}`);
-    console.log(error);
+    console.error(error);
+    sendReply(client, m, `An error occurred while fetching the lyrics for "${text}".`);
   }
-};
+}

@@ -22,7 +22,7 @@
     "PREFIX": {
       "description": "choose your prefix for keith. To prevent errors and confusion you must set a prefix",
       "value": ".",
-      "required": true
+      "required": false
     },
     "OWNER_NUMBER": {
       "description": "Put any phone numbers you want to be bot owner without + or spaces \",\" Ex: 254748387615, 254796299159 ",
@@ -30,8 +30,8 @@
     },
     "OWNER_NAME": {
       "description": "add your owner name for the bot",
-         "value": "Ghost",
-      "required": false
+         "value": "",
+      "required": true
     },
     "HEROKU_API_KEY": {
       "description": "add your heroku api key here",
@@ -43,7 +43,12 @@
     },
     "BOTNAME": {
       "description": "Enter name for your bot.",
-      "value": "KEITH BOT",
+      "value": "",
+      "required": true
+    },
+    "PM_PERMIT": {
+      "description": "type true if you don't want anyone to access your bot in pm.",
+      "value": "true",
       "required": false
     },
     "EMOJI": {
@@ -64,10 +69,40 @@
 "EVENTS": {
       "description": "choose whether to allow bot to detect events in groups such as promote, demote, remove and add. If set to true bot will send welcome/goodbye messages and signal when somebody is promoted or demoted.",
       "value": "true",
-      "required": true
+      "required": false
     },
 "AUTOBIO": {
       "description": "Type true if you want bot to autoupdate it's bio constantly",
+         "value": "true",
+      "required": false
+        },
+"ANTIDELETE": {
+      "description": "Type true if you want bot to undelete messages.",
+         "value": "true",
+      "required": false
+        },
+"CHATBOT": {
+      "description": "Type true if you want bot to automatically reply to messages in your pm .",
+         "value": "true",
+      "required": false
+        },
+"GREET": {
+      "description": "Type true if you want bot to automatically send greet text anytime the bot restats.",
+         "value": "true",
+      "required": false
+        },
+"AUTODOWNLOAD_STATUS": {
+      "description": "Type true if you want bot to automatically download status update .",
+         "value": "true",
+      "required": false
+        },
+"GREET_MSG": {
+      "description": "Set your greet message here for bot to send greet text when GREET us enabled",
+         "value": "keith is unavailable kindly leave a message",
+      "required": false
+        },
+"VOICECHATBOT": {
+      "description": "Type true if you want bot to automatically send voice chat bot message privately ",
          "value": "true",
       "required": false
         },
@@ -88,7 +123,8 @@
       "required": false
     },
 "URL": {
-      "description": "Add your image url for the bot",
+      "description": "Replace with your image url",
+      "value": "https://files.catbox.moe/mikdi0.jpg",
       "required": true
     },
 

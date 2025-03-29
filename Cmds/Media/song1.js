@@ -1,79 +1,83 @@
-const axios = require("axios");
-const fg = require("api-dylux");
-const ytSearch = require("yt-search");
-const fs = require("fs");
-const path = require("path");
+const yts = require("yt-search");
+const fetch = require("node-fetch");
 
-async function downloadAudio(url) {
-  try {
-    if (!url) {
-      throw new Error("URL parameter is required");
-    }
-    
-    const response = await fg.yta(url);
-    const title = response.title;
-    const downloadLink = response.dl_url;
-
-    return {
-      status: true,
-      createdBy: "Keithkeizzah",
-      title: title,
-      downloadLink: downloadLink
-    };
-  } catch (error) {
-    console.error("Error fetching audio:", error);
-    return null;
-  }
-}
-
-module.exports = async (messageDetails) => {
-  const { client, m: message, text: query } = messageDetails;
-  const chatId = message.chat;
+module.exports = async (context) => {
+  const { client, m, text, botname, sendReply, sendMediaMessage } = context;
 
   try {
-    // Check if a query is provided
-    if (!query || query.trim().length === 0) {
-      return message.reply("What song or video do you want to download?");
+    // Ensure the user provides a song name
+    if (!text) {
+      return sendReply(client, m, "Please specify the song you want to download.");
     }
 
-    // Perform a YouTube search based on the query
-    const searchResults = await ytSearch(query);
+    // Perform a YouTube search
+    const search = await yts(text);
+    if (!search.all.length) {
+      return sendReply(client, m, "No results found for your query.");
+    }
 
-    // If results are found
-    if (searchResults && searchResults.videos.length > 0) {
-      const firstVideo = searchResults.videos[0];
-      const videoUrl = firstVideo.url;
+    const link = search.all[0].url;
 
-      // Download the audio
-      const audioData = await downloadAudio(videoUrl);
+    // Generate the API URL
+    const apiUrl = `https://apis-keith.vercel.app/download/dlmp3?url=${link}`;
 
-      // If the audio download URL is successfully retrieved
-      if (audioData && audioData.downloadLink) {
-        const inputPath = path.join(__dirname, 'downloaded_audio.mp3');
+    // Fetch the audio data from the API
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      return sendReply(client, m, "Failed to fetch data from the API. Please try again.");
+    }
 
-        // Download the audio and save it locally
-        const writer = fs.createWriteStream(inputPath);
-        const audioStream = axios.get(audioData.downloadLink, { responseType: 'stream' }).data.pipe(writer);
-        
-        audioStream.on('finish', async () => {
-          try {
-            // Send the audio to the user
-            await client.sendMessage(chatId, { audio: { url: inputPath }, mimetype: "audio/mp3" }, { quoted: message });
-          } catch (err) {
-            console.error("Error sending audio:", err);
-            message.reply("Failed to send the audio.");
-          } finally {
-            // Clean up the downloaded audio file
-            fs.unlinkSync(inputPath);
-          }
-        });
-      } else {
-        message.reply("Failed to retrieve the audio download link.");
-      }
+    const data = await response.json();
+
+    // Check if the API response contains the expected result
+    if (data.status && data.result) {
+      const { title, downloadUrl, format, quality } = data.result;
+      const thumbnail = search.all[0].thumbnail;
+
+      // Send a message with song details and thumbnail
+      await sendMediaMessage(
+        client,
+        m,
+        {
+          image: { url: thumbnail },
+          caption: `
+╭═════════════════⊷
+║ *Title*: ${title}
+║ *Format*: ${format}
+║ *Quality*: ${quality}
+╰═════════════════⊷
+*Powered by ${botname}*`,
+        },
+        { quoted: m }
+      );
+
+      // Send the audio file
+      await sendMediaMessage(
+        client,
+        m,
+        {
+          audio: { url: downloadUrl },
+          mimetype: "audio/mp4",
+        },
+        { quoted: m }
+      );
+
+      // Send the audio file as a document
+      await sendMediaMessage(
+        client,
+        m,
+        {
+          document: { url: downloadUrl },
+          mimetype: "audio/mp3",
+          fileName: `${title.replace(/[^a-zA-Z0-9 ]/g, "")}.mp3`,
+        },
+        { quoted: m }
+      );
     } else {
-      message.reply("No video found for the specified query.");
+      return sendReply(client, m, "Unable to fetch the song. Please try again later.");
     }
   } catch (error) {
-    message.reply("Download failed\n" + error);
+    // Handle unexpected errors
+    return sendReply(client, m, `An error occurred: ${error.message}`);
   }
 };
